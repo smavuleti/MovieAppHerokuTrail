@@ -13,10 +13,14 @@ const Users = Models.User;
 const Genres = Models.Genre;
 const Directors = Models.Director;
 
-mongoose.connect('CONNECTION_URI', {
+//mongodb connection
+mongoose.connect(process.env.CONNECTION_URI, {
     useNewUrlParser: true,
-    useUnifiedTopology: true
-});
+    useUnifiedTopology: true,
+})
+.then(() => console.log("Connected to MongoDB Atlas"))
+.catch((err) => console.log("Error connecting to MongoDB: ", err));
+
 
 app.use(bodyParser.json());
 app.use(express.json());
