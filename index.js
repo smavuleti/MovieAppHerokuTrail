@@ -7,6 +7,8 @@ const morgan = require("morgan");
 const app = express();
 const mongoose = require('mongoose');
 const Models = require('./model.js');
+const bcrypt = require('bcrypt');
+
 
 const Movies = Models.Movie;
 const Users = Models.User;
