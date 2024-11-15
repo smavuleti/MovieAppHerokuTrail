@@ -13,7 +13,7 @@ const Users = Models.User;
 const Genres = Models.Genre;
 const Directors = Models.Director;
 
-mongoose.connect('CONNECTION_URI', {
+mongoose.connect('mongodb://localhost:27017/movieApp', {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
@@ -22,9 +22,6 @@ app.use(bodyParser.json());
 app.use(express.json());
 app.use(morgan("common"));
 
-const cors = require('cors');
-app.use(cors());
-const { check, validationResult } = require('express-validator');
 let auth = require('./auth')(app);
 const passport = require('passport');
 require('./passport');
@@ -110,18 +107,7 @@ app.get('/directors/:directorName', (req, res) => {
 }
 */
 //Register new user 
-app.post('/users',
-    [
-        check('UserName', 'Username is required').isLength({min: 5}),
-        check('UserName','Username contains non alphanumeric characters - not allowed.').isAlphanumeric(), 
-        check('UserPassword','Password is required').not().isEmpty(),
-        check('UserEmail', 'Email does not appear to be valid').isEmail()
-    ], async (req, res) => {
-        let errors = validationResults(req);
-        if(!errors.isEmpty()){
-            return res.status(422).json({ errors: errors.array()});
-        }
-    let hashedPassword = Users.hashPassword(req.body.UserPassword);
+app.post('/users', async (req, res) => {
     await Users.findOne({ UserName: req.body.UserName })
         .then((user) => {
             if (user) {
@@ -130,7 +116,7 @@ app.post('/users',
                 Users
                     .create({
                         UserName: req.body.UserName,
-                        UserPassword: hashedPassword,
+                        UserPassword: req.body.UserPassword,
                         UserEmail: req.body.UserEmail,
                         UserBirthday: req.body.UserBirthday
                     })
@@ -173,27 +159,30 @@ app.get('/users/:UserName', (req, res) => {
 });
 
 
-// Update user information
-app.put('/users/:UserName', (req, res) => {
-    Users.findOneAndUpdate({ UserName: req.params.UserName }, {
-        $set: {
+app.put('/users/:Username', passport.authenticate('jwt', { session: false }), async (req, res) => {
+    // CONDITION TO CHECK ADDED HERE
+    if(req.user.UserName !== req.params.UserName){
+        return res.status(400).send('Permission denied');
+    }
+    // CONDITION ENDS
+    await Users.findOneAndUpdate({ UserName: req.params.UserName }, {
+        $set:
+        {
             UserName: req.body.UserName,
             UserPassword: req.body.UserPassword,
             UserEmail: req.body.UserEmail,
             UserBirthday: req.body.UserBirthday
         }
     },
-        { new: true })
+        { new: true }) // This line makes sure that the updated document is returned
         .then((updatedUser) => {
             res.json(updatedUser);
         })
         .catch((err) => {
-            console.error(err);
-            res.status(500).send('Error:' + err);
+            console.log(err);
+            res.status(500).send('Error: ' + err);
         })
-    //    res.send('Successful PUT request updating username');
 });
-
 //Adding a movie to list of favorites for user
 app.post('/users/:UserName/allMovies/:MovieID', (req, res) => {
     Users.findOneAndUpdate({ UserName: req.params.UserName }, {
@@ -245,7 +234,6 @@ app.delete('/users/:UserName', (req, res) => {
 });
 
 
-const port = process.env.PORT || 8080;
-app.listen(port, '0.0.0.0', () => {
-    console.log('Listening on Port' + port);
+app.listen(8080, () => {
+    console.log('Your app is listening on port 8080');
 });
