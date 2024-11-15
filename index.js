@@ -1,13 +1,9 @@
 const express = require('express'),
-    bodyParser = require('body-parser'),
-    uuid = require('uuid');
-
-
+    bodyParser = require('body-parser');
 const morgan = require("morgan");
 const app = express();
 const mongoose = require('mongoose');
 const Models = require('./model.js');
-const bcrypt = require('bcrypt');
 
 
 const Movies = Models.Movie;
@@ -18,53 +14,39 @@ const Directors = Models.Director;
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(morgan("common"));
-
+app.use(express.static("public"));
+const passport = require('passport');
+require('./passport');
 const cors = require('cors');
 app.use(cors());
 const { check, validationResult } = require('express-validator');
 let auth = require('./auth')(app);
-const passport = require('passport');
-require('./passport');
+
 
 //mongodb connection
 mongoose.connect(process.env.CONNECTION_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 })
-.then(() => console.log("Connected to MongoDB Atlas"))
-.catch((err) => console.log("Error connecting to MongoDB: ", err));
-
-
+    .then(() => console.log("Connected to MongoDB Atlas"))
+    .catch((err) => console.log("Error connecting to MongoDB: ", err));
 
 
 app.get('/', (req, res) => {
     res.send("Welcome to Movie Application");
 });
 
-// //Return a list of ALL movies to the user
-// app.get('/allMovies', (req, res) => {
-//     Movies.find()
-//         .then((movies) => {
-//             res.status(201).json(movies);
-//             console.log("in getting all movies");
-
-//         }).
-//         catch((err) => {
-//             console.error(err);
-//             res.status(500).send("Error:" + err);
-//         });
-// });
 
 app.get('/allMovies', passport.authenticate('jwt', { session: false }), async (req, res) => {
     await Movies.find()
-      .then((movies) => {
-        res.status(201).json(movies);
-      })
-      .catch((error) => {
-        console.error(error);
-        res.status(500).send('Error: ' + error);
-      });
-  });
+        .then((movies) => {
+            res.status(201).json(movies);
+        })
+        .catch((error) => {
+            console.error(error);
+            res.status(500).send('Error: ' + error);
+        });
+});
 
 //Return data about a single movie by title to the user
 app.get('/allMovies/:movieTitle', (req, res) => {
@@ -107,53 +89,43 @@ app.get('/directors/:directorName', (req, res) => {
     //res.send(" Successful Get method with Movie Director data by Movie Title");
 });
 
-/* 
---Add User with this format:--
-{
-    ID: Integer,        
-    UserName: String,
-    UserPassword: String,
-    UserEmail: String,
-    UserBirthday: Date
-}
-*/
 //Register new user 
 app.post('/users',
     [
-        check('UserName', 'Username is required').isLength({min: 5}),
-        check('UserName','Username contains non alphanumeric characters - not allowed.').isAlphanumeric(), 
-        check('UserPassword','Password is required').not().isEmpty(),
+        check('UserName', 'Username is required').isLength({ min: 5 }),
+        check('UserName', 'Username contains non alphanumeric characters - not allowed.').isAlphanumeric(),
+        check('UserPassword', 'Password is required').not().isEmpty(),
         check('UserEmail', 'Email does not appear to be valid').isEmail()
     ], async (req, res) => {
         let errors = validationResults(req);
-        if(!errors.isEmpty()){
-            return res.status(422).json({ errors: errors.array()});
+        if (!errors.isEmpty()) {
+            return res.status(422).json({ errors: errors.array() });
         }
-    let hashedPassword = Users.hashPassword(req.body.UserPassword);
-    await Users.findOne({ UserName: req.body.UserName })
-        .then((user) => {
-            if (user) {
-                return res.status(400).send(req.body.UserName + 'already exists');
-            } else {
-                Users
-                    .create({
-                        UserName: req.body.UserName,
-                        UserPassword: hashedPassword,
-                        UserEmail: req.body.UserEmail,
-                        UserBirthday: req.body.UserBirthday
-                    })
-                    .then((user) => { res.status(201).json(user) })
-                    .catch((error) => {
-                        console.error(error);
-                        res.status(500).send('Error: ' + error);
-                    })
-            }
-        })
-        .catch((error) => {
-            console.error(error);
-            res.status(500).send('Error: ' + error);
-        });
-});
+        let hashedPassword = Users.hashPassword(req.body.UserPassword);
+        await Users.findOne({ UserName: req.body.UserName })
+            .then((user) => {
+                if (user) {
+                    return res.status(400).send(req.body.UserName + 'already exists');
+                } else {
+                    Users
+                        .create({
+                            UserName: req.body.UserName,
+                            UserPassword: hashedPassword,
+                            UserEmail: req.body.UserEmail,
+                            UserBirthday: req.body.UserBirthday
+                        })
+                        .then((user) => { res.status(201).json(user) })
+                        .catch((error) => {
+                            console.error(error);
+                            res.status(500).send('Error: ' + error);
+                        })
+                }
+            })
+            .catch((error) => {
+                console.error(error);
+                res.status(500).send('Error: ' + error);
+            });
+    });
 
 // Get a list of users 
 app.get('/users', (req, res) => {
