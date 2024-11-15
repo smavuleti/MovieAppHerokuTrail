@@ -13,15 +13,6 @@ const Users = Models.User;
 const Genres = Models.Genre;
 const Directors = Models.Director;
 
-//mongodb connection
-mongoose.connect(process.env.CONNECTION_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
-.then(() => console.log("Connected to MongoDB Atlas"))
-.catch((err) => console.log("Error connecting to MongoDB: ", err));
-
-
 app.use(bodyParser.json());
 app.use(express.json());
 app.use(morgan("common"));
@@ -32,6 +23,17 @@ const { check, validationResult } = require('express-validator');
 let auth = require('./auth')(app);
 const passport = require('passport');
 require('./passport');
+
+//mongodb connection
+mongoose.connect(process.env.CONNECTION_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+})
+.then(() => console.log("Connected to MongoDB Atlas"))
+.catch((err) => console.log("Error connecting to MongoDB: ", err));
+
+
+
 
 app.get('/', (req, res) => {
     res.send("Welcome to Movie Application");
