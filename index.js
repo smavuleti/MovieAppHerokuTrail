@@ -17,6 +17,7 @@ app.use(morgan("common"));
 app.use(express.static("public"));
 const passport = require('passport');
 require('./passport');
+
 const cors = require('cors');
 app.use(cors());
 const { check, validationResult } = require('express-validator');
